@@ -18,46 +18,54 @@ namespace CP2.API.Presentation.Controllers
             _applicationService = applicationService;
         }
 
-
+        // Método GET: Lista todos os fornecedores
         [HttpGet]
         [SwaggerOperation(Summary = "Lista todos os fornecedores", Description = "Este endpoint retorna uma lista completa de todos os fornecedores cadastrados.")]
-        [Produces<IEnumerable<FornecedorEntity>>]
-        public IActionResult Get()
+        [ProducesResponseType(typeof(IEnumerable<FornecedorEntity>), (int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> Get()
         {
-            var objModel = _applicationService.ObterTodosFornecedores();
+            var fornecedores = await _applicationService.GetAllAsync();
 
-            if (objModel is not null)
-                return Ok(objModel);
+            if (fornecedores != null)
+                return Ok(fornecedores);
 
-            return BadRequest("Não foi possivel obter os dados");
+            return BadRequest("Não foi possível obter os dados.");
         }
 
-
+        // Método GET por ID: Retorna um fornecedor específico
         [HttpGet("{id}")]
-        [Produces<FornecedorEntity>]
-        public IActionResult GetPorId(int id)
+        [ProducesResponseType(typeof(FornecedorEntity), (int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> GetPorId(int id)
         {
-            var objModel = _applicationService.ObterFornecedorPorId(id);
+            var fornecedor = await _applicationService.GetByIdAsync(id);
 
-            if (objModel is not null)
-                return Ok(objModel);
+            if (fornecedor != null)
+                return Ok(fornecedor);
 
-            return BadRequest("Não foi possivel obter os dados");
+            return BadRequest("Não foi possível obter os dados.");
         }
 
-
+        // Método POST: Cria um novo fornecedor
         [HttpPost]
-        [Produces<FornecedorEntity>]
-        public IActionResult Post([FromBody] FornecedorDto entity)
+        [ProducesResponseType(typeof(FornecedorEntity), (int)HttpStatusCode.Created)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> Post([FromBody] FornecedorDto entity)
         {
             try
             {
-                var objModel = _applicationService.SalvarDadosFornecedor(entity);
+                await _applicationService.AddAsync(new FornecedorEntity
+                {
+                    Nome = entity.Nome,
+                    CNPJ = entity.CNPJ,
+                    Telefone = entity.Telefone,
+                    Email = entity.Email,
+                    Endereco = entity.Endereco,
+                    CriadoEm = DateTime.Now
+                });
 
-                if (objModel is not null)
-                    return Ok(objModel);
-
-                return BadRequest("Não foi possivel salvar os dados");
+                return StatusCode((int)HttpStatusCode.Created, entity);
             }
             catch (Exception ex)
             {
@@ -69,18 +77,28 @@ namespace CP2.API.Presentation.Controllers
             }
         }
 
+        // Método PUT: Edita um fornecedor existente
         [HttpPut("{id}")]
-        [Produces<FornecedorEntity>]
-        public IActionResult Put(int id, [FromBody] FornecedorDto entity)
+        [ProducesResponseType(typeof(FornecedorEntity), (int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> Put(int id, [FromBody] FornecedorDto entity)
         {
             try
             {
-                var objModel = _applicationService.EditarDadosFornecedor(id, entity);
+                var fornecedor = await _applicationService.GetByIdAsync(id);
 
-                if (objModel is not null)
-                    return Ok(objModel);
+                if (fornecedor == null)
+                    return BadRequest("Fornecedor não encontrado.");
 
-                return BadRequest("Não foi possivel salvar os dados");
+                fornecedor.Nome = entity.Nome;
+                fornecedor.CNPJ = entity.CNPJ;
+                fornecedor.Telefone = entity.Telefone;
+                fornecedor.Email = entity.Email;
+                fornecedor.Endereco = entity.Endereco;
+
+                await _applicationService.UpdateAsync(fornecedor);
+
+                return Ok(fornecedor);
             }
             catch (Exception ex)
             {
@@ -92,17 +110,31 @@ namespace CP2.API.Presentation.Controllers
             }
         }
 
-
+        // Método DELETE: Exclui um fornecedor existente
         [HttpDelete("{id}")]
-        [Produces<FornecedorEntity>]
-        public IActionResult Delete(int id)
+        [ProducesResponseType(typeof(FornecedorEntity), (int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> Delete(int id)
         {
-            var objModel = _applicationService.DeletarDadosFornecedor(id);
+            try
+            {
+                var fornecedor = await _applicationService.GetByIdAsync(id);
 
-            if (objModel is not null)
-                return Ok(objModel);
+                if (fornecedor == null)
+                    return BadRequest("Fornecedor não encontrado.");
 
-            return BadRequest("Não foi possivel deletar os dados");
+                await _applicationService.DeleteAsync(id);
+
+                return Ok(fornecedor);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    Error = ex.Message,
+                    status = HttpStatusCode.BadRequest,
+                });
+            }
         }
     }
 }

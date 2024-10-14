@@ -18,46 +18,57 @@ namespace CP2.API.Presentation.Controllers
             _applicationService = applicationService;
         }
 
-
+        // Método GET: Lista todos os vendedores
         [HttpGet]
         [SwaggerOperation(Summary = "Lista todos os vendedores", Description = "Este endpoint retorna uma lista completa de todos os vendedores cadastrados.")]
-        [Produces<IEnumerable<VendedorEntity>>]
-        public IActionResult Get()
+        [ProducesResponseType(typeof(IEnumerable<VendedorEntity>), (int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> Get()
         {
-            var objModel = _applicationService.ObterTodosVendedores();
+            var vendedores = await _applicationService.GetAllAsync();
 
-            if (objModel is not null)
-                return Ok(objModel);
+            if (vendedores != null)
+                return Ok(vendedores);
 
-            return BadRequest("Não foi possivel obter os dados");
+            return BadRequest("Não foi possível obter os dados.");
         }
 
-
+        // Método GET por ID: Retorna um vendedor específico
         [HttpGet("{id}")]
-        [Produces<VendedorEntity>]
-        public IActionResult GetPorId(int id)
+        [ProducesResponseType(typeof(VendedorEntity), (int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> GetPorId(int id)
         {
-            var objModel = _applicationService.ObterVendedorPorId(id);
+            var vendedor = await _applicationService.GetByIdAsync(id);
 
-            if (objModel is not null)
-                return Ok(objModel);
+            if (vendedor != null)
+                return Ok(vendedor);
 
-            return BadRequest("Não foi possivel obter os dados");
+            return BadRequest("Não foi possível obter os dados.");
         }
 
-
+        // Método POST: Cria um novo vendedor
         [HttpPost]
-        [Produces<VendedorEntity>]
-        public IActionResult Post([FromBody] VendedorDto entity)
+        [ProducesResponseType(typeof(VendedorEntity), (int)HttpStatusCode.Created)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> Post([FromBody] VendedorDto entity)
         {
             try
             {
-                var objModel = _applicationService.SalvarDadosVendedor(entity);
+                await _applicationService.AddAsync(new VendedorEntity
+                {
+                    Nome = entity.Nome,
+                    Email = entity.Email,
+                    Telefone = entity.Telefone,
+                    Endereco = entity.Endereco,
+                    DataNascimento = entity.DataNascimento,
+                    DataContratacao = entity.DataContratacao,
+                    ComissaoPercentual = entity.ComissaoPercentual,
+                    MetaMensal = entity.MetaMensal,
+                    CriadoEm = DateTime.Now
+                });
 
-                if (objModel is not null)
-                    return Ok(objModel);
-
-                return BadRequest("Não foi possivel salvar os dados");
+                return StatusCode((int)HttpStatusCode.Created, entity);
             }
             catch (Exception ex)
             {
@@ -69,18 +80,31 @@ namespace CP2.API.Presentation.Controllers
             }
         }
 
+        // Método PUT: Edita um vendedor existente
         [HttpPut("{id}")]
-        [Produces<VendedorEntity>]
-        public IActionResult Put(int id, [FromBody] VendedorDto entity)
+        [ProducesResponseType(typeof(VendedorEntity), (int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> Put(int id, [FromBody] VendedorDto entity)
         {
             try
             {
-                var objModel = _applicationService.EditarDadosVendedor(id, entity);
+                var vendedor = await _applicationService.GetByIdAsync(id);
 
-                if (objModel is not null)
-                    return Ok(objModel);
+                if (vendedor == null)
+                    return BadRequest("Vendedor não encontrado.");
 
-                return BadRequest("Não foi possivel salvar os dados");
+                vendedor.Nome = entity.Nome;
+                vendedor.Email = entity.Email;
+                vendedor.Telefone = entity.Telefone;
+                vendedor.Endereco = entity.Endereco;
+                vendedor.DataNascimento = entity.DataNascimento;
+                vendedor.DataContratacao = entity.DataContratacao;
+                vendedor.ComissaoPercentual = entity.ComissaoPercentual;
+                vendedor.MetaMensal = entity.MetaMensal;
+
+                await _applicationService.UpdateAsync(vendedor);
+
+                return Ok(vendedor);
             }
             catch (Exception ex)
             {
@@ -92,17 +116,31 @@ namespace CP2.API.Presentation.Controllers
             }
         }
 
-
+        // Método DELETE: Exclui um vendedor existente
         [HttpDelete("{id}")]
-        [Produces<VendedorEntity>]
-        public IActionResult Delete(int id)
+        [ProducesResponseType(typeof(VendedorEntity), (int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> Delete(int id)
         {
-            var objModel = _applicationService.DeletarDadosVendedor(id);
+            try
+            {
+                var vendedor = await _applicationService.GetByIdAsync(id);
 
-            if (objModel is not null)
-                return Ok(objModel);
+                if (vendedor == null)
+                    return BadRequest("Vendedor não encontrado.");
 
-            return BadRequest("Não foi possivel deletar os dados");
+                await _applicationService.DeleteAsync(id);
+
+                return Ok(vendedor);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    Error = ex.Message,
+                    status = HttpStatusCode.BadRequest,
+                });
+            }
         }
     }
 }
