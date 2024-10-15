@@ -1,6 +1,8 @@
 using CP2.API.Domain.Interfaces;
 using CP2.API.Infrastructure.Data.AppData;
 using CP2.API.Infrastructure.Data.Repositories;
+using CP2.API.Application.Interfaces;
+using CP2.API.Application.Services; // Certifique-se de que a implementação está aqui
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,10 +12,16 @@ builder.Services.AddDbContext<ApplicationContext>(x => {
     x.UseOracle(builder.Configuration.GetConnectionString("Oracle"));
 });
 
+// Registrar o repositório e os serviços de aplicação
 builder.Services.AddTransient<IFornecedorRepository, FornecedorRepository>();
+builder.Services.AddTransient<IFornecedorApplicationService, FornecedorApplicationService>();
+
+builder.Services.AddTransient<IVendedorRepository, VendedorRepository>();
+builder.Services.AddTransient<IVendedorApplicationService, VendedorApplicationService>();  // Adicionando o serviço correto
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+// Swagger/OpenAPI configuration
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c => {
     c.EnableAnnotations();
@@ -22,7 +30,6 @@ builder.Services.AddSwaggerGen(c => {
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-// Habilitar o Swagger em qualquer ambiente
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -31,7 +38,5 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
